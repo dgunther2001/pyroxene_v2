@@ -1,0 +1,32 @@
+cabal-version:       2.2
+
+name:                frontend-haskell
+version:             0.1.0.0
+-- synopsis:
+-- description:
+author:              Daniel Gunther
+maintainer:          danielgunther2001@gmail.com
+copyright:           2025 Daniel Gunther
+category:            Web
+build-type:          Simple
+
+executable frontend-haskell
+  hs-source-dirs:      lib src
+  main-is:             Main.hs
+  other-modules:
+    LogLib.Logger
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5,
+                       network,
+                       bytestring,
+                       time
+                       
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints

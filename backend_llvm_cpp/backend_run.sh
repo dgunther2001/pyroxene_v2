@@ -2,8 +2,8 @@
 
 mkdir -p build
 cd build
-cmake .. 
-make 
+cmake .. > /dev/null
+make > /dev/null
 ./driver
 cd ..
 #rm -rf build
