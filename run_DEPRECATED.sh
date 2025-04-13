@@ -29,18 +29,21 @@ chmod 755 tmp/
 
 cd backend_llvm_cpp
 ./backend_run.sh &
+PID_1=$!
 cd ..
 
 sleep 0.1
 cd middle_end_rs
 ./middle_end_run.sh &
+PID_2=$!
 cd ..
 
 sleep 0.1
 cd frontend-haskell
-./frontend_hs.sh
+./frontend_hs.sh &
+PID_3=$!
 cd ..
 
-wait
+wait $PID_3
 
 rm -rf tmp/

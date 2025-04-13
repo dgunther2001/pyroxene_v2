@@ -1,9 +1,9 @@
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::io::{Read, Write};
+use std::env;
 
 fn main() -> std::io::Result<()> {
-    let frontend_path = "../tmp/frontend_pyroxene.sock";
-    let listener = UnixListener::bind(frontend_path)?;
+    let listener = UnixListener::bind(env::var("FRONTEND_SOCKET_PATH").unwrap())?;
 
     for stream in listener.incoming() {
         match stream {
@@ -15,7 +15,7 @@ fn main() -> std::io::Result<()> {
                     let data = &buffer[..bytes_read];
 
                     if let Err(e) = {
-                        let mut stream = UnixStream::connect("../tmp/backend_pyroxene.sock")?;
+                        let mut stream = UnixStream::connect(env::var("BACKEND_SOCKET_PATH").unwrap())?;
                         stream.write_all(data)?;
                         Ok::<(), std::io::Error>(())
                     } {

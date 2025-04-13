@@ -1,7 +1,7 @@
 #include "socket_comm.h"
 
 namespace backend_socket {
-    void open_sock() {
+    void open_sock(const char* SOCKET_PATH) {
         unlink(SOCKET_PATH);
 
         int sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
