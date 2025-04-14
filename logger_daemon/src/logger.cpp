@@ -1,66 +1,114 @@
 #include <iostream>
+#include <string>
+#include <vector>
+
+#include "daemon_orchestrator.h"
+
+
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <string>
+#include <cstdlib>
+#include <chrono>
+#include <thread>
+#include <signal.h>
+#include <fstream>
 
-#define SOCKET_PATH "../../tmp/logger_daemon.sock"
+void write_dummy_log_message(const char* message) {
+    const char* socket_path = std::getenv("PYROXENE_LOG_SOCKET_PATH");
+    if (!socket_path) {
+        std::cerr << "PYROXENE_LOG_SOCKET_PATH not set!\n";
+        return;
+    }
 
-void open_sock() {
-    unlink(SOCKET_PATH);
-
-    int sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd == -1) {
+    int client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (client_fd == -1) {
         perror("socket");
         return;
     }
 
-    sockaddr_un addr;
-    memset(&addr, 0, sizeof(addr));
+    sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
 
-    if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        perror("bind");
+    if (connect(client_fd, (sockaddr*)&addr, sizeof(addr)) == -1) {
+        perror("connect");
+        close(client_fd);
         return;
     }
 
-    if (listen(sockfd, 1) == -1) {
-        perror("listen");
-        return;
-    }
-
-    std::cout << "Waiting for connection on Logger backend socket " << SOCKET_PATH << "...\n";
-
-    int client_fd = accept(sockfd, nullptr, nullptr);
-    if (client_fd == -1) {
-        perror("accept");
-        return;
-    }
-
-    std::cout << "Logger socket opened and connected\n";
-
-    char buffer[1024];
-    ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer));
-    if (bytes_read > 0) {
-        std::cout << "Received: " << std::string(buffer, bytes_read) << "\n";
-    }
+    ssize_t bytes_written = write(client_fd, message, strlen(message));
+    if (bytes_written == -1) {
+        perror("write");
+    } 
 
     close(client_fd);
-    close(sockfd);
-    unlink(SOCKET_PATH); 
-
-    exit(0);
 }
 
-bool log_to_file(std::string file_path, std::string msg) {
-    std::cout << "SOCKET PATH: " << file_path << std::endl;
-    return true;
+std::vector<pid_t> wait_for_pid_list(const char* pid_path) {
+    while (!std::filesystem::exists(pid_path) || std::filesystem::file_size(pid_path) == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    std::ifstream pid_file(pid_path);
+    std::string pid_line;
+    std::getline(pid_file, pid_line);
+    pid_file.close();
+
+    std::vector<pid_t> pids;
+    std::stringstream ss(pid_line);
+    std::string pid;
+
+    while (std::getline(ss, pid, ':')) {
+        pids.push_back(static_cast<pid_t>(std::stoi(pid)));
+    }
+
+    return pids;
 }
+
+void monitor_feeding_processes() {
+
+    auto pids = wait_for_pid_list(std::getenv("PID_PATH"));
+
+    while (true) {
+        
+        bool any_alive = false;
+        for (pid_t pid : pids) {
+            if (kill(pid, 0) == 0) { 
+                any_alive = true;
+                break;
+            }
+        }
+
+        if (!any_alive) {
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+
+
 
 
 int main() {
-    //open_sock();
-    log_to_file(std::getenv("PYROXENE_LOG_SOCKET_PATH"), "daniel");
+    const char* msg = "DEBUG|LogInfo|Logger|C++|Logger Invoked|";
+    const char* msg2 = "WARN|LogInfo|Logger|C++|Logger Invoked|";
+
+    daemon_orchestrator::daemon_orch_obj orchestrator(std::getenv("PYROXENE_LOG_PATH"));
+    orchestrator.start_threads();
+    
+    for (int i = 0; i < 50; i ++) {
+        write_dummy_log_message(msg);
+        write_dummy_log_message(msg2);
+    }
+    
+    std::thread monitor_thread(monitor_feeding_processes);
+    monitor_thread.join();
+    //orchestrator.wait_until_queues_empty();
+    //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    orchestrator.kill_threads();
+
     return 0;
 }

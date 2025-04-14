@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import signal
+import threading
 
 processes = []
 
@@ -10,11 +11,10 @@ def cleanup_background_processes():
     for process in processes:
         if process.poll() is None:
             #print(f"Killing process: {process.pid}")
-            process.terminate()
             try:
-                process.wait(timeout=2)
+                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
             except:
-                process.kill()
+                pass
     subprocess.run(["rm", "-rf", "tmp"])
 
 def print_active_processes():
@@ -45,24 +45,35 @@ def init_env():
     os.environ["FRONTEND_SOCKET_PATH"] = os.path.join(os.getcwd(), "tmp", "frontend_pyroxene.sock")
     os.environ["BACKEND_SOCKET_PATH"] = os.path.join(os.getcwd(), "tmp", "backend_pyroxene.sock")
 
+    os.environ["ERROR_LEVEL"] = "DEBUG"
+
+    os.environ["PID_PATH"] = os.path.join(os.getcwd(), "tmp", "pids.txt")
+
+
     if "--log" in sys.argv:
         os.environ["PYROXENE_LOG"] = "1"
         open(os.environ["PYROXENE_LOG_PATH"], "w").close()
     else:
         os.environ["PYROXENE_LOG"] = "0"
 
-    logger_proc = subprocess.Popen(["./run_logger.sh"], cwd="logger_daemon")
-    processes.append(logger_proc)
-    backend_proc = subprocess.Popen(["./backend_run.sh"], cwd="backend_llvm_cpp")
+    logger_proc = subprocess.Popen(["./run_logger.sh"], cwd="logger_daemon", preexec_fn=os.setsid)
+    wait_for_socket("tmp/logger_daemon.sock")
+    backend_proc = subprocess.Popen(["./backend_run.sh"], cwd="backend_llvm_cpp", preexec_fn=os.setsid)
     processes.append(backend_proc)
     wait_for_socket("tmp/backend_pyroxene.sock")
-    middle_proc = subprocess.Popen(["./middle_end_run.sh"], cwd="middle_end_rs")
+    middle_proc = subprocess.Popen(["./middle_end_run.sh"], cwd="middle_end_rs", preexec_fn=os.setsid)
     processes.append(middle_proc)
     wait_for_socket("tmp/frontend_pyroxene.sock")
-    frontend_proc = subprocess.Popen(["./frontend_hs.sh"], cwd="frontend-haskell")
+    frontend_proc = subprocess.Popen(["./frontend_hs.sh"], cwd="frontend-haskell", preexec_fn=os.setsid)
+    #threading.Thread(target=reap_process, args=(frontend_proc,), daemon=True).start()
     processes.append(frontend_proc)
 
-    return frontend_proc
+
+    processes.append(logger_proc)
+
+    with open("tmp/pids.txt", "w") as f:
+        f.write(f"{frontend_proc.pid}:{middle_proc.pid}:{backend_proc.pid}")
+
 
 def signal_handler(signal, frame):
     print(f"\nReceived signal {signal}. Terminating all processes.")
@@ -74,8 +85,9 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-        frontend_process = init_env()
-        frontend_process.wait()
+        init_env()
+        for process in processes:
+            process.wait()
     except Exception as excp:
         print(f"Error: {excp}")
         cleanup_background_processes()
