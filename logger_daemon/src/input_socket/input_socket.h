@@ -10,7 +10,14 @@
 namespace input_socket {
     class input_socket_obj {
     public:
-        input_socket_obj(buffer_parser::buffer_parser_obj& buffer_parser) : buffer_parser(buffer_parser) {}
+        input_socket_obj(std::function<void(std::string)> enqueue_to_buffer_parser_callback, 
+                         std::function<void(std::string)> log_self_callback, 
+                         std::function<bool()> parser_thread_active_callback
+                        ) : 
+                        enqueue_to_buffer_parser_callback(enqueue_to_buffer_parser_callback),
+                        log_self_callback(log_self_callback),
+                        parser_thread_active_callback(parser_thread_active_callback)
+                        {}
         void init_socket();
         void read_socket();
         void close_socket();
@@ -20,15 +27,16 @@ namespace input_socket {
 
         bool thread_active() { return is_thread_running; }
 
-        // MAKE PRIVATE LATER
+    private:
         void enqueue_buffer_parser(std::string msg);
 
-    private:
         int sockfd = -1;
         std::string SOCKET_PATH;
 
+        std::function<void(std::string)> enqueue_to_buffer_parser_callback;
+        std::function<void(std::string)> log_self_callback;
+        std::function<bool()> parser_thread_active_callback;
 
-        buffer_parser::buffer_parser_obj& buffer_parser;
 
         void run_thread();
 

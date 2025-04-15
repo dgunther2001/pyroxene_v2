@@ -2,7 +2,7 @@
 
 namespace input_socket {
     void input_socket_obj::enqueue_buffer_parser(std::string msg) {
-        buffer_parser.enqueue_msg(msg);
+        enqueue_to_buffer_parser_callback(msg);
     }
 
     void input_socket_obj::init_socket() {
@@ -74,7 +74,7 @@ namespace input_socket {
     }
 
     void input_socket_obj::init_thread() {
-        if (!buffer_parser.thread_active()) {
+        if (!parser_thread_active_callback()) {
             // ADD ERROR HANDLING
         }
         is_thread_running = true;

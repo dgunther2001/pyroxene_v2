@@ -53,11 +53,11 @@ def init_env():
     if "--log" in sys.argv:
         os.environ["PYROXENE_LOG"] = "1"
         open(os.environ["PYROXENE_LOG_PATH"], "w").close()
+        logger_proc = subprocess.Popen(["./run_logger.sh"], cwd="logger_daemon", preexec_fn=os.setsid)
+        wait_for_socket("tmp/logger_daemon.sock")
     else:
         os.environ["PYROXENE_LOG"] = "0"
 
-    logger_proc = subprocess.Popen(["./run_logger.sh"], cwd="logger_daemon", preexec_fn=os.setsid)
-    wait_for_socket("tmp/logger_daemon.sock")
     backend_proc = subprocess.Popen(["./backend_run.sh"], cwd="backend_llvm_cpp", preexec_fn=os.setsid)
     processes.append(backend_proc)
     wait_for_socket("tmp/backend_pyroxene.sock")
@@ -68,8 +68,8 @@ def init_env():
     #threading.Thread(target=reap_process, args=(frontend_proc,), daemon=True).start()
     processes.append(frontend_proc)
 
-
-    processes.append(logger_proc)
+    if os.getenv("PYROXENE_LOG") == "1":
+        processes.append(logger_proc)
 
     with open("tmp/pids.txt", "w") as f:
         f.write(f"{frontend_proc.pid}:{middle_proc.pid}:{backend_proc.pid}")

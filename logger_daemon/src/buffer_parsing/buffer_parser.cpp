@@ -1,14 +1,6 @@
 #include "buffer_parser.h"
 
 namespace util_buffer_parser {
-    log_level get_error_level() {
-        const char* err_level_env = std::getenv("ERROR_LEVEL");
-        if (!err_level_env) {
-            return log_level::ERROR;
-        }
-        return parse_err_level_str(err_level_env);
-    }
-
     std::string get_current_formatted_time() {
         auto now = std::chrono::system_clock::now();
         auto time_c = std::chrono::system_clock::to_time_t(now);
@@ -18,27 +10,56 @@ namespace util_buffer_parser {
         return ss.str();
     }
 
-    log_level parse_err_level_str(const char* err_level) {
-        if (strcmp(err_level, "TRACE") == 0) return log_level::TRACE;
-        if (strcmp(err_level, "DEBUG") == 0) return log_level::DEBUG;
-        if (strcmp(err_level, "INFO")  == 0) return log_level::INFO;
-        if (strcmp(err_level, "WARN")  == 0) return log_level::WARN;
-        if (strcmp(err_level, "ERROR") == 0) return log_level::ERROR;
-        if (strcmp(err_level, "FATAL") == 0) return log_level::FATAL;
+    log_level get_error_level() {
+        const char* err_level_env = std::getenv("ERROR_LEVEL");
+        if (!err_level_env) {
+            return log_level::ERROR;
+        }
+        return parse_err_level_str(err_level_env);
+    }
+
+    log_level parse_err_level_str(const std::string& msg) {
+        if (msg == "TRACE") return log_level::TRACE;
+        if (msg == "DEBUG") return log_level::DEBUG;
+        if (msg == "INFO")  return log_level::INFO;
+        if (msg == "WARN")  return log_level::WARN;
+        if (msg == "ERROR") return log_level::ERROR;
+        if (msg == "FATAL") return log_level::FATAL;
         
         std::cerr << "Invalid error level - defaulting to ERROR\n";
         return log_level::ERROR;
+    }
+
+    valid_log_fields get_log_field(const std::string& log_field) {
+        static const std::unordered_map<std::string, valid_log_fields> log_fields = {
+            {"LOG_LEVEL", valid_log_fields::LOG_LEVEL},
+            {"LOG_TYPE", valid_log_fields::LOG_TYPE},
+            {"COMPONENT", valid_log_fields::COMPONENT},
+            {"LANGUAGE", valid_log_fields::LANGUAGE},
+            {"MESSAGE", valid_log_fields::MESSAGE}
+        };
+
+        auto log_field_lookup = log_fields.find(log_field);
+        if (log_field_lookup != log_fields.end()) {
+            return log_field_lookup->second;
+        }
+
+        return valid_log_fields::INVALID;
     }
 }
 
 namespace buffer_parser { 
     void buffer_parser_obj::enqueue_msg(std::string msg) {
-        msgs_to_parse.push(msg);
+        {
+            std::lock_guard<std::mutex> lock(thread_active_mutex);
+            msgs_to_parse.push(msg);
+        }
+        thread_active_condition_var.notify_one();
     }
 
     void buffer_parser_obj::enqueue_log_writer(std::optional<std::string> msg) {
         if (msg) {
-            log_file_writer.enqueue_msg(*msg);
+            enqueue_to_log_writer_callback(*msg);
         }
     }
 
@@ -51,7 +72,7 @@ namespace buffer_parser {
             if (buffer[buffer_pos] == '|') {
                 if (!err_level_checked) {
                     util_buffer_parser::log_level error_level = util_buffer_parser::get_error_level();
-                    util_buffer_parser::log_level msg_level = util_buffer_parser::parse_err_level_str(aggregate.c_str());
+                    util_buffer_parser::log_level msg_level = util_buffer_parser::parse_err_level_str(aggregate);
                     
                     // if the passed message is less than the current error level, skip it
                     if (msg_level < error_level) {
@@ -110,7 +131,7 @@ namespace buffer_parser {
     }
 
     void buffer_parser_obj::init_thread() {
-        if (!log_file_writer.thread_active()) {
+        if (!log_writer_thread_active_callback()) {
             // ADD ERROR HANDLING
         }
         is_thread_running = true;

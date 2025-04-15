@@ -93,15 +93,18 @@ void monitor_feeding_processes() {
 
 
 int main() {
-    const char* msg = "DEBUG|LogInfo|Logger|C++|Logger Invoked|";
+    const char* msg  = "DEBUG|LogInfo|Logger|C++|Logger Invoked|";
     const char* msg2 = "WARN|LogInfo|Logger|C++|Logger Invoked|";
+    const char* msg3 = "ERROR|LogInfo|Logger|C++|Logger Invoked|";
 
     daemon_orchestrator::daemon_orch_obj orchestrator(std::getenv("PYROXENE_LOG_PATH"));
     orchestrator.start_threads();
-    
-    for (int i = 0; i < 50; i ++) {
+    orchestrator.log_orchestrator_info("DEBUG|LogInfo|Logger|C++|Orchestrator Initializing Threads|");
+
+    for (int i = 0; i < 2; i ++) {
         write_dummy_log_message(msg);
         write_dummy_log_message(msg2);
+        write_dummy_log_message(msg3);
     }
     
     std::thread monitor_thread(monitor_feeding_processes);

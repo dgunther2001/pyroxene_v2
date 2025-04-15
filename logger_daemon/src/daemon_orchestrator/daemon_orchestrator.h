@@ -12,10 +12,13 @@ namespace daemon_orchestrator {
         void kill_threads();
         void wait_until_queues_empty();
 
-        // TEMPORARY => TO REMOVE!!!
-        void enqueue_msg_to_socket(std::string msg) { input_socket.enqueue_buffer_parser(msg); /*buffer_parser.enqueue_msg(msg);*/ }
+        void log_orchestrator_info(std::string msg);
 
     private:
+        std::function<void(std::string)> logger_messages_callback = [this](std::string msg) {
+            buffer_parser.enqueue_msg(msg);
+        };
+
         log_writer::log_writer_obj log_writer;
         buffer_parser::buffer_parser_obj buffer_parser;
         input_socket::input_socket_obj input_socket;
