@@ -7,7 +7,7 @@
 namespace daemon_orchestrator {
     class daemon_orch_obj {
     public:
-        daemon_orch_obj(const char* log_file_path);
+        daemon_orch_obj(const char* log_file_path, parser_strategy parsing_strategy);
         void start_threads();
         void kill_threads();
         void wait_until_queues_empty();

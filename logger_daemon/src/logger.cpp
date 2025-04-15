@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "daemon_orchestrator.h"
+#include "buffer_parser_strategies/default_pyroxene_strategy/default_pyroxene_strategy.h"
 
 
 #include <sys/socket.h>
@@ -97,7 +98,7 @@ int main() {
     const char* msg2 = "WARN|LogInfo|Logger|C++|Logger Invoked|";
     const char* msg3 = "ERROR|LogInfo|Logger|C++|Logger Invoked|";
 
-    daemon_orchestrator::daemon_orch_obj orchestrator(std::getenv("PYROXENE_LOG_PATH"));
+    daemon_orchestrator::daemon_orch_obj orchestrator(std::getenv("PYROXENE_LOG_PATH"), &pyroxene_default_parser::pyroxene_default_parser);
     orchestrator.start_threads();
     orchestrator.log_orchestrator_info("DEBUG|LogInfo|Logger|C++|Orchestrator Initializing Threads|");
 

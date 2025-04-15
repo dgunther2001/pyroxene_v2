@@ -4,13 +4,15 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <thread>
+
+// TO REMOVE
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <unordered_map>
 
-
-#include "log_writer.h"
+using parser_strategy = std::function<std::optional<std::string>(const std::string&)>;
 
 namespace util_buffer_parser {
     std::string get_current_formatted_time();
@@ -50,11 +52,13 @@ namespace buffer_parser {
     public:
         buffer_parser_obj(std::function<void(std::string)> enqueue_to_log_writer_callback, 
                           std::function<void(std::string)> log_self_callback, 
-                          std::function<bool()> log_writer_thread_active_callback
+                          std::function<bool()> log_writer_thread_active_callback,
+                          parser_strategy parsing_strategy
                          ) : 
                          enqueue_to_log_writer_callback(enqueue_to_log_writer_callback),
                          log_self_callback(log_self_callback),
-                         log_writer_thread_active_callback(log_writer_thread_active_callback)
+                         log_writer_thread_active_callback(log_writer_thread_active_callback),
+                         parsing_strategy(parsing_strategy)
                          {}
 
         void enqueue_msg(std::string msg);
@@ -83,6 +87,8 @@ namespace buffer_parser {
         std::mutex thread_active_mutex;
         std::thread writing_thread;
         bool is_thread_running = false;
+
+        parser_strategy parsing_strategy;
     };
 
 }

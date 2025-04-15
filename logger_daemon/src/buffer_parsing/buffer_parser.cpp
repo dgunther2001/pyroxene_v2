@@ -122,9 +122,9 @@ namespace buffer_parser {
             while (!msgs_to_parse.empty()) {
                 auto current_message = msgs_to_parse.front(); 
                 msgs_to_parse.pop();
-                auto parsed_msg = parse_char_buffer(current_message, current_message.size());
-                auto output_msg = generate_output_message(parsed_msg);
-                enqueue_log_writer(output_msg);
+                //auto parsed_msg = parse_char_buffer(current_message, current_message.size());
+                //auto output_msg = generate_output_message(parsed_msg);
+                enqueue_log_writer(parsing_strategy(current_message));
             }
         }
         //thread_active_condition_var.notify_all();
