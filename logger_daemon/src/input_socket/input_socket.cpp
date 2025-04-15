@@ -6,7 +6,7 @@ namespace input_socket {
     }
 
     void input_socket_obj::init_socket() {
-        SOCKET_PATH = std::getenv("PYROXENE_LOG_SOCKET_PATH");
+        //SOCKET_PATH = std::getenv("PYROXENE_LOG_SOCKET_PATH");
         unlink(SOCKET_PATH.c_str());
     
         sockfd = socket(AF_UNIX, SOCK_STREAM, 0);

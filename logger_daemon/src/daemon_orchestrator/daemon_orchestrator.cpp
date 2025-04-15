@@ -1,7 +1,7 @@
 #include "daemon_orchestrator.h"
 
 namespace daemon_orchestrator {
-    daemon_orch_obj::daemon_orch_obj(const char* log_file_path, parser_strategy parsing_strategy) :
+    daemon_orch_obj::daemon_orch_obj(const char* log_file_path, const char* socket_path, parser_strategy parsing_strategy) :
         log_writer(
             log_file_path,
             logger_messages_callback
@@ -15,9 +15,10 @@ namespace daemon_orchestrator {
         input_socket(
             [this](std::string msg) { buffer_parser.enqueue_msg(std::move(msg)); }, 
             logger_messages_callback, 
-            [this]() { return buffer_parser.thread_active(); }
+            [this]() { return buffer_parser.thread_active(); },
+            socket_path
         )
-    {}
+        {}
 
     void daemon_orch_obj::start_threads() {
         log_writer.init_thread();
