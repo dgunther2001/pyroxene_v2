@@ -3,7 +3,6 @@
 #include <vector>
 
 #include <logger_foundry/logger_foundry/logger_foundry.h>
-//#include <logger_foundry/logger_foundry>
 #include "pyroxene_logger_strategy.h"
 
 
@@ -69,7 +68,6 @@ std::vector<pid_t> wait_for_pid_list(const char* pid_path) {
 }
 
 void monitor_feeding_processes() {
-
     auto pids = wait_for_pid_list(std::getenv("PID_PATH"));
 
     while (true) {
@@ -107,7 +105,15 @@ int main() {
     const char* msg2 = "LOG_LEVEL=WARN|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
     const char* msg3 = "LOG_LEVEL=ERROR|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
 
-    logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser);
+    //logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser);
+
+    
+    logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser,
+    [] {
+        monitor_feeding_processes();
+    });
+    
+    
     //orchestrator.log_orchestrator_info("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger Orchestrator|LANGUAGE=C++|MESSAGE=Orchestrator Initializing Threads|");
 
     for (int i = 0; i < 2; i ++) {
@@ -116,8 +122,8 @@ int main() {
         write_dummy_log_message(msg3);
     }
     
-    std::thread monitor_thread(monitor_feeding_processes);
-    monitor_thread.join();
+    //std::thread monitor_thread(monitor_feeding_processes);
+    //monitor_thread.join();
 
     return 0;
     
