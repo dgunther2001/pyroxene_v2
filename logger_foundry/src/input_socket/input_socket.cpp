@@ -85,7 +85,7 @@ namespace input_socket {
         {
             std::lock_guard<std::mutex> lock(thread_active_mutex);
             is_thread_running = false;
-            thread_active_condition_var.notify_one();
+            thread_active_condition_var.notify_all();
         }
 
         shutdown(sockfd, SHUT_RDWR);

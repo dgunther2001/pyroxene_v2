@@ -7,6 +7,19 @@ import threading
 
 processes = []
 
+def build_logger_foundry():
+    logger_foundry_path = os.path.join(os.getcwd(), "logger_foundry")
+    build_logger_foundry_script = os.path.join(logger_foundry_path, "build_logger.sh")
+
+    proc = subprocess.run(["bash", build_logger_foundry_script], cwd=logger_foundry_path, check=True)
+
+    # VERIFY THIS LATER
+    install_prefix = os.path.join(os.getcwd(), "lib")
+    
+
+    return install_prefix
+
+
 def cleanup_background_processes():
     for process in processes:
         if process.poll() is None:
@@ -37,6 +50,7 @@ def init_env():
     subprocess.run(["rm", "-rf", "tmp"])
     os.makedirs("logs", exist_ok=True)
     os.makedirs("tmp", exist_ok=True)
+    os.makedirs("lib", exist_ok=True)
     os.chmod("tmp", 0o755)
 
     os.environ["PYROXENE_LOG_PATH"] = os.path.join(os.getcwd(), "logs", "pyroxene.log")
@@ -49,11 +63,16 @@ def init_env():
 
     os.environ["PID_PATH"] = os.path.join(os.getcwd(), "tmp", "pids.txt")
 
+    os.environ["PYROXENE_ROOT_PATH"] = os.path.join(os.getcwd())
+    os.environ["INCLUDED_LIBRARY_PATH"] = os.path.join(os.getcwd(), "lib")
+
 
     if "--log" in sys.argv:
         os.environ["PYROXENE_LOG"] = "1"
+        os.environ["LOG_FOUNDRY_LIB_PATH"] = build_logger_foundry()
+
         open(os.environ["PYROXENE_LOG_PATH"], "w").close()
-        logger_proc = subprocess.Popen(["./run_logger.sh"], cwd="logger_daemon", preexec_fn=os.setsid)
+        logger_proc = subprocess.Popen(["./build_pyroxene_daemon.sh"], cwd="logger_daemon_pyroxene", preexec_fn=os.setsid)
         wait_for_socket("tmp/logger_daemon.sock")
     else:
         os.environ["PYROXENE_LOG"] = "0"
@@ -81,6 +100,7 @@ def signal_handler(signal, frame):
     sys.exit(1)
 
 def main():
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 

@@ -33,8 +33,8 @@ namespace daemon_orchestrator {
     void daemon_orch_obj::kill_threads() {
         //buffer_parser.enqueue_msg("DEBUG|LogInfo|Logger Orchestrator|C++|Killing Logger Threads|");
         //buffer_parser.enqueue_msg("DEBUG|LogInfo|Logger Orchestrator|C++|Closing Logger Socket|");
-        input_socket.stop_thread();
         input_socket.close_socket();
+        input_socket.stop_thread();
 
         buffer_parser.stop_thread();
         log_writer.stop_thread();

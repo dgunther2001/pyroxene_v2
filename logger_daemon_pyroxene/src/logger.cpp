@@ -2,8 +2,9 @@
 #include <string>
 #include <vector>
 
-#include "daemon_orchestrator.h"
-#include "buffer_parser_strategies/default_pyroxene_strategy/default_pyroxene_strategy.h"
+#include <logger_foundry/logger_foundry/logger_foundry.h>
+//#include <logger_foundry/logger_foundry>
+#include "pyroxene_logger_strategy.h"
 
 
 #include <sys/socket.h>
@@ -101,13 +102,13 @@ int main() {
     {"LANGUAGE", valid_log_fields::LANGUAGE},
     {"MESSAGE", valid_log_fields::MESSAGE}
     */
+    
     const char* msg  = "LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
     const char* msg2 = "LOG_LEVEL=WARN|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
     const char* msg3 = "LOG_LEVEL=ERROR|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
 
-    daemon_orchestrator::daemon_orch_obj orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser);
-    orchestrator.start_threads();
-    orchestrator.log_orchestrator_info("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger Orchestrator|LANGUAGE=C++|MESSAGE=Orchestrator Initializing Threads|");
+    logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser);
+    //orchestrator.log_orchestrator_info("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger Orchestrator|LANGUAGE=C++|MESSAGE=Orchestrator Initializing Threads|");
 
     for (int i = 0; i < 2; i ++) {
         write_dummy_log_message(msg);
@@ -117,9 +118,7 @@ int main() {
     
     std::thread monitor_thread(monitor_feeding_processes);
     monitor_thread.join();
-    //orchestrator.wait_until_queues_empty();
-    //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    orchestrator.kill_threads();
 
     return 0;
+    
 }

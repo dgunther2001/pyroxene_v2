@@ -1,4 +1,4 @@
-#include "default_pyroxene_strategy.h"
+#include "pyroxene_logger_strategy.h"
 
 // internal needs
 #include <iostream>

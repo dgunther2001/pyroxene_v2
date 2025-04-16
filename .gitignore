@@ -2,3 +2,5 @@ compile_commands.json
 logs/
 tmp/
 TODO.txt
+lib/
+include/
