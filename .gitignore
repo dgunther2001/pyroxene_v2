@@ -3,4 +3,4 @@ logs/
 tmp/
 TODO.txt
 lib/
-include/
+/include/
