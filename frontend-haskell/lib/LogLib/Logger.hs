@@ -1,27 +1,22 @@
 module LogLib.Logger (msglog) where
 
 import System.Environment (lookupEnv)
-import Data.Time.LocalTime (getZonedTime)
-import Data.Time.Format (formatTime, defaultTimeLocale)
+import Network.Socket
+import Network.Socket.ByteString (sendAll)
+import qualified Data.ByteString.Char8 as BS
+
 
 msglog :: String -> IO ()
 msglog stringToLog = do
     logEnabled <- lookupEnv "PYROXENE_LOG"
-    pyroxLogPath  <- lookupEnv "PYROXENE_LOG_PATH"
+    pyroxLogSocketPath <- lookupEnv "PYROXENE_LOG_SOCKET_PATH"
     case logEnabled of
         Just "1" -> 
-            case pyroxLogPath of
-                Just path -> do
-                    timeAsString <- getCurrentTime
-                    appendFile path timeAsString
-                    appendFile path " "
-                    appendFile path stringToLog
-                    appendFile path "\n"
-                _ -> return ()
+            case pyroxLogSocketPath of
+                Nothing -> putStrLn "Error: PYROXENE_LOG_SOCKET_PATH not set"
+                Just socketPath -> do
+                    sock <- socket AF_UNIX Stream 0
+                    connect sock (SockAddrUnix socketPath)
+                    sendAll sock (BS.pack stringToLog)
+                    close sock
         _   -> return ()
-
-
-getCurrentTime :: IO String
-getCurrentTime = do 
-    time <- getZonedTime
-    return $ formatTime defaultTimeLocale "%T" time

@@ -1,7 +1,7 @@
 module Main (main) where
 
 
---import LogLib.Logger (msglog)
+import LogLib.Logger (msglog)
 import Network.Socket
 import Network.Socket.ByteString (sendAll)
 import qualified Data.ByteString.Char8 as BS
@@ -11,6 +11,7 @@ main :: IO ()
 main = do
   --msglog ("Haskell Logger Enabled")
   --msglog ("Haskell Logger Still Enabled")
+  msglog("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Haskell Main|LANGUAGE=Haskell|MESSAGE=Haskell Main Entered|")
   frontendSocketPath <- lookupEnv "FRONTEND_SOCKET_PATH"
   case frontendSocketPath of
     Nothing -> putStrLn "Error: FRONTEND_SOCKET_PATH not set"
