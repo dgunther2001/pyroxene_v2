@@ -160,7 +160,7 @@ namespace pyroxene_parser_strategy::internal {
                 return {};
             }
 
-            output_msg.insert(0, "[ERROR]");
+            output_msg.insert(0, " [ERROR]");
         }
 
         output_msg.insert(0, current_time);

@@ -21,13 +21,18 @@ int main() {
     //logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser);
 
     
-    logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser,
-    [] {
-        pyroxene_shutdown_strategy::monitor_feeding_processes();
-    });
-    
-    orchestrator.log_orchestrator_info("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger Orchestrator|LANGUAGE=C++|MESSAGE=Orchestrator Initializing Threads|");
+    logger_foundry::logger_daemon orchestrator = logger_foundry::logger_daemon_builder()
+        .set_log_path(std::getenv("PYROXENE_LOG_PATH"))
+        .set_socket_path(std::getenv("PYROXENE_LOG_SOCKET_PATH"))
+        .set_parser_strategy(&pyroxene_default_parser::pyroxene_default_parser)
+        .set_kill_strategy([] {
+            pyroxene_shutdown_strategy::monitor_feeding_processes();
+        })
+        .build();
 
+    
+    orchestrator.log_direct("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger Orchestrator|LANGUAGE=C++|MESSAGE=Orchestrator Initializing Threads|");
+    
     for (int i = 0; i < 2; i ++) {
         write_test_socket::write_dummy_log_message(msg);
         write_test_socket::write_dummy_log_message(msg2);
