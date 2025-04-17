@@ -1,96 +1,9 @@
 #include <iostream>
-#include <string>
-#include <vector>
 
 #include <logger_foundry/logger_foundry/logger_foundry.h>
-#include "pyroxene_logger_strategy.h"
-
-
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <cstdlib>
-#include <chrono>
-#include <thread>
-#include <signal.h>
-#include <fstream>
-
-void write_dummy_log_message(const char* message) {
-    const char* socket_path = std::getenv("PYROXENE_LOG_SOCKET_PATH");
-    if (!socket_path) {
-        std::cerr << "PYROXENE_LOG_SOCKET_PATH not set!\n";
-        return;
-    }
-
-    int client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (client_fd == -1) {
-        perror("socket");
-        return;
-    }
-
-    sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
-
-    if (connect(client_fd, (sockaddr*)&addr, sizeof(addr)) == -1) {
-        perror("connect");
-        close(client_fd);
-        return;
-    }
-
-    ssize_t bytes_written = write(client_fd, message, strlen(message));
-    if (bytes_written == -1) {
-        perror("write");
-    } 
-
-    close(client_fd);
-}
-
-std::vector<pid_t> wait_for_pid_list(const char* pid_path) {
-    while (!std::filesystem::exists(pid_path) || std::filesystem::file_size(pid_path) == 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    std::ifstream pid_file(pid_path);
-    std::string pid_line;
-    std::getline(pid_file, pid_line);
-    pid_file.close();
-
-    std::vector<pid_t> pids;
-    std::stringstream ss(pid_line);
-    std::string pid;
-
-    while (std::getline(ss, pid, ':')) {
-        pids.push_back(static_cast<pid_t>(std::stoi(pid)));
-    }
-
-    return pids;
-}
-
-void monitor_feeding_processes() {
-    auto pids = wait_for_pid_list(std::getenv("PID_PATH"));
-
-    while (true) {
-        
-        bool any_alive = false;
-        for (pid_t pid : pids) {
-            if (kill(pid, 0) == 0) { 
-                any_alive = true;
-                break;
-            }
-        }
-
-        if (!any_alive) {
-            break;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-}
-
-
-
-
+#include "pyroxene_logger_parser_strategy.h"
+#include "pyroxene_shutdown_strategy.h"
+#include "test_socket.h"
 
 int main() {
     /*
@@ -103,23 +16,22 @@ int main() {
     
     const char* msg  = "LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
     const char* msg2 = "LOG_LEVEL=WARN|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
-    const char* msg3 = "LOG_LEVEL=ERROR|LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
+    const char* msg3 = "LOG_TYPE=LogInfo|COMPONENT=Logger|LANGUAGE=C++|MESSAGE=Logger Invoked|";
 
     //logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser);
 
     
     logger_foundry::logger_daemon orchestrator(std::getenv("PYROXENE_LOG_PATH"), std::getenv("PYROXENE_LOG_SOCKET_PATH"), &pyroxene_default_parser::pyroxene_default_parser,
     [] {
-        monitor_feeding_processes();
+        pyroxene_shutdown_strategy::monitor_feeding_processes();
     });
     
-    
-    //orchestrator.log_orchestrator_info("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger Orchestrator|LANGUAGE=C++|MESSAGE=Orchestrator Initializing Threads|");
+    orchestrator.log_orchestrator_info("LOG_LEVEL=DEBUG|LOG_TYPE=LogInfo|COMPONENT=Logger Orchestrator|LANGUAGE=C++|MESSAGE=Orchestrator Initializing Threads|");
 
     for (int i = 0; i < 2; i ++) {
-        write_dummy_log_message(msg);
-        write_dummy_log_message(msg2);
-        write_dummy_log_message(msg3);
+        write_test_socket::write_dummy_log_message(msg);
+        write_test_socket::write_dummy_log_message(msg2);
+        write_test_socket::write_dummy_log_message(msg3);
     }
     
     //std::thread monitor_thread(monitor_feeding_processes);

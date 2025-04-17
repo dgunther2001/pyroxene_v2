@@ -3,9 +3,16 @@ import os
 import sys
 import time
 import signal
-import threading
+import argparse
 
 processes = []
+
+def get_logger_error_level(error_level_arg):
+    error_level_set = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+    if error_level_arg in error_level_set:
+        return error_level_arg
+    else:
+        return "ERROR"
 
 def build_logger_foundry():
     logger_foundry_path = os.path.join(os.getcwd(), "logger_foundry")
@@ -29,6 +36,8 @@ def cleanup_background_processes():
             except:
                 pass
     subprocess.run(["rm", "-rf", "tmp"])
+    subprocess.run(["rm", "-rf", "lib"])
+    subprocess.run(["rm", "-rf", "include"])
 
 def print_active_processes():
     for process in processes:
@@ -59,17 +68,24 @@ def init_env():
     os.environ["FRONTEND_SOCKET_PATH"] = os.path.join(os.getcwd(), "tmp", "frontend_pyroxene.sock")
     os.environ["BACKEND_SOCKET_PATH"] = os.path.join(os.getcwd(), "tmp", "backend_pyroxene.sock")
 
-    os.environ["ERROR_LEVEL"] = "DEBUG"
-
     os.environ["PID_PATH"] = os.path.join(os.getcwd(), "tmp", "pids.txt")
 
     os.environ["PYROXENE_ROOT_PATH"] = os.path.join(os.getcwd())
     os.environ["INCLUDED_LIBRARY_PATH"] = os.path.join(os.getcwd(), "lib")
 
+    os.makedirs("lib", exist_ok=True)
 
-    if "--log" in sys.argv:
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log", action="store_true")
+    parser.add_argument("--log-level", nargs="?", const="ERROR", type=str, default="ERROR")
+    cmd_line_arguments = parser.parse_args()
+    
+    if cmd_line_arguments.log:
         os.environ["PYROXENE_LOG"] = "1"
         os.environ["LOG_FOUNDRY_LIB_PATH"] = build_logger_foundry()
+
+        os.environ["ERROR_LEVEL"] = get_logger_error_level(cmd_line_arguments.log_level)
 
         open(os.environ["PYROXENE_LOG_PATH"], "w").close()
         logger_proc = subprocess.Popen(["./build_pyroxene_daemon.sh"], cwd="logger_daemon_pyroxene", preexec_fn=os.setsid)

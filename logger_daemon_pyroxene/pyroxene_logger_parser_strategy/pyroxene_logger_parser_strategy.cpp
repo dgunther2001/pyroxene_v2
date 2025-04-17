@@ -1,13 +1,12 @@
-#include "pyroxene_logger_strategy.h"
+#include "pyroxene_logger_parser_strategy.h"
 
-// internal needs
 #include <iostream>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <unordered_map>
 
-namespace pyroxene_strategy::internal {
+namespace pyroxene_parser_strategy::internal {
     enum log_level {
         TRACE = 1,
         DEBUG = 10,
@@ -73,14 +72,14 @@ namespace pyroxene_strategy::internal {
         return valid_log_fields::INVALID;
     }
 
-    std::vector<std::pair<pyroxene_strategy::internal::valid_log_fields, std::string>> parse_char_buffer(std::string buffer) {
+    std::vector<std::pair<pyroxene_parser_strategy::internal::valid_log_fields, std::string>> parse_char_buffer(std::string buffer) {
         bool err_level_checked = false;
         std::string aggregate;
-        pyroxene_strategy::internal::valid_log_fields log_field;
+        pyroxene_parser_strategy::internal::valid_log_fields log_field;
         std::string log_field_string;
         std::string value_string;
 
-        std::vector<std::pair<pyroxene_strategy::internal::valid_log_fields, std::string>> parsed_buffer;
+        std::vector<std::pair<pyroxene_parser_strategy::internal::valid_log_fields, std::string>> parsed_buffer;
 
         for (char character : buffer) {
             if (character == '|') {
@@ -90,7 +89,7 @@ namespace pyroxene_strategy::internal {
                     value_string = aggregate.substr(equals_delimiter + 1);
                     log_field = get_log_field(log_field_string);
 
-                    if (log_field != pyroxene_strategy::internal::valid_log_fields::INVALID) {
+                    if (log_field != pyroxene_parser_strategy::internal::valid_log_fields::INVALID) {
                         parsed_buffer.emplace_back(log_field, std::move(value_string));
                     }
                 }
@@ -100,18 +99,6 @@ namespace pyroxene_strategy::internal {
                 aggregate += character;
             }
         }
-                /*
-                if (!err_level_checked) {
-                    log_level error_level = get_error_level();
-                    log_level msg_level = parse_err_level_str(aggregate);
-                    
-                    // if the passed message is less than the current error level, skip it
-                    if (msg_level < error_level) {
-                        return {};
-                    }
-                    err_level_checked = true;
-                }
-                    */
     
                 // check for an equals sign
                 // if there is none, then don't push back
@@ -123,38 +110,60 @@ namespace pyroxene_strategy::internal {
     
     }
     
-    std::optional<std::string> generate_output_message(std::vector<std::pair<pyroxene_strategy::internal::valid_log_fields, std::string>> parsed_buffer) {
+    std::optional<std::string> generate_output_message(std::vector<std::pair<pyroxene_parser_strategy::internal::valid_log_fields, std::string>> parsed_buffer) {
     
         if (parsed_buffer.size() == 0) {
             return std::nullopt;
         }
 
         std::string output_msg;
-        output_msg += get_current_formatted_time() + " ";
+        std::string current_time = get_current_formatted_time() + " ";
+
+
+
+        bool contains_log_level = false;
 
         for (auto const& message_component : parsed_buffer) {
             switch (message_component.first) {
-                case pyroxene_strategy::internal::valid_log_fields::LOG_LEVEL:
+                case pyroxene_parser_strategy::internal::valid_log_fields::LOG_LEVEL: {
+                    pyroxene_parser_strategy::internal::log_level error_level = get_error_level();
+                    pyroxene_parser_strategy::internal::log_level msg_level = pyroxene_parser_strategy::internal::parse_err_level_str(message_component.second);
+                    if (msg_level < error_level) {
+                        return {};
+                    }
+
                     output_msg += " [" + message_component.second + "] ";
+                    contains_log_level = true;
                     break;
+                }
                 /*
-                case pyroxene_strategy::internal::valid_log_fields::LOG_TYPE:
+                case pyroxene_parser_strategy::internal::valid_log_fields::LOG_TYPE:
                     output_msg += " [" + message_component.second + "] ";
                     break;
                 */
-                case pyroxene_strategy::internal::valid_log_fields::COMPONENT:
+                case pyroxene_parser_strategy::internal::valid_log_fields::COMPONENT:
                     output_msg += " [" + message_component.second + "] ";
                     break;
-                case pyroxene_strategy::internal::valid_log_fields::LANGUAGE:
+                case pyroxene_parser_strategy::internal::valid_log_fields::LANGUAGE:
                     output_msg +=" [" + message_component.second + "] ";
                     break;
-                case pyroxene_strategy::internal::valid_log_fields::MESSAGE:
+                case pyroxene_parser_strategy::internal::valid_log_fields::MESSAGE:
                     output_msg += " " + message_component.second + " ";
                     break;
                 default:
                     break;
             }
         }
+
+        if (!contains_log_level) {
+            if (log_level::ERROR < get_error_level()) {
+                return {};
+            }
+
+            output_msg.insert(0, "[ERROR]");
+        }
+
+        output_msg.insert(0, current_time);
         
         return output_msg;
     }
@@ -163,6 +172,6 @@ namespace pyroxene_strategy::internal {
 
 namespace pyroxene_default_parser {
     std::optional<std::string> pyroxene_default_parser(const std::string& buffer) {
-        return pyroxene_strategy::internal::generate_output_message(pyroxene_strategy::internal::parse_char_buffer(buffer));
+        return pyroxene_parser_strategy::internal::generate_output_message(pyroxene_parser_strategy::internal::parse_char_buffer(buffer));
     }
 }
