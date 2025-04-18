@@ -164,6 +164,8 @@ namespace pyroxene_parser_strategy::internal {
         }
 
         output_msg.insert(0, current_time);
+
+        output_msg += "\n";
         
         return output_msg;
     }
