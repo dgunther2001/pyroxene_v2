@@ -16,14 +16,13 @@ def get_logger_error_level(error_level_arg):
 
 def build_logger_foundry():
     logger_foundry_path = os.path.join(os.getcwd(), "logger_foundry")
-    build_logger_foundry_script = os.path.join(logger_foundry_path, "build_logger.sh")
+    build_logger_foundry_script = os.path.join(logger_foundry_path, "build_logger_foundry.py")
 
-    proc = subprocess.run(["bash", build_logger_foundry_script], cwd=logger_foundry_path, check=True)
+    subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["PYROXENE_ROOT_PATH"]], cwd=logger_foundry_path, check=True)
 
     # VERIFY THIS LATER
     install_prefix = os.path.join(os.getcwd(), "lib")
     
-
     return install_prefix
 
 
