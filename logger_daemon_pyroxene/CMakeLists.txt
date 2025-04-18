@@ -8,7 +8,7 @@ add_subdirectory(pyroxene_logger_parser_strategy)
 add_subdirectory(pyroxene_logger_shutdown_strategy)
 add_subdirectory(test_socket)
 
-find_package(logger_foundry REQUIRED)
+find_package(logger_foundry 1.0 REQUIRED)
 
 add_executable(driver
     src/logger.cpp

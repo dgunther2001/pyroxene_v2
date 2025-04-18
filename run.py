@@ -17,14 +17,10 @@ def get_logger_error_level(error_level_arg):
 def build_logger_foundry():
     logger_foundry_path = os.path.join(os.getcwd(), "logger_foundry")
     build_logger_foundry_script = os.path.join(logger_foundry_path, "build_logger_foundry.py")
-
-    subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["INCLUDED_LIBRARY_PATH"]], cwd=logger_foundry_path, check=True)
-
+    subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["LOGGER_FOUNDRY_INSTALL_PATH"]], cwd=logger_foundry_path, check=True)
     # VERIFY THIS LATER
     install_prefix = os.path.join(os.getcwd(), "lib")
-    
     return install_prefix
-
 
 def cleanup_background_processes():
     for process in processes:
@@ -35,7 +31,7 @@ def cleanup_background_processes():
             except:
                 pass
     subprocess.run(["rm", "-rf", "tmp"])
-    subprocess.run(["rm", "-rf", "logger_foundry_lib"])
+    #subprocess.run(["rm", "-rf", "logger_foundry_lib"])
 
 def print_active_processes():
     for process in processes:
@@ -52,7 +48,12 @@ def wait_for_socket(socket_path, timeout=5):
             raise TimeoutError(f"Timeout - Waiting for socket: {socket_path}")
         time.sleep(0.01)
 
-def init_env():
+def write_pids(process_list):
+    process_string = ":".join(str(process.pid) for process in process_list)
+    with open("tmp/pids.txt", "w") as f:
+        f.write(process_string)
+
+def env_files_setup():
     subprocess.run(["rm", "-rf", "logs"])
     subprocess.run(["rm", "-rf", "tmp"])
     os.makedirs("logs", exist_ok=True)
@@ -60,23 +61,37 @@ def init_env():
     os.makedirs("logger_foundry_lib", exist_ok=True)
     os.chmod("tmp", 0o755)
 
+def init_env_vars():
     os.environ["PYROXENE_LOG_PATH"] = os.path.join(os.getcwd(), "logs", "pyroxene.log")
     os.environ["PYROXENE_LOG_SOCKET_PATH"] = os.path.join(os.getcwd(), "tmp", "logger_daemon.sock")
-
     os.environ["FRONTEND_SOCKET_PATH"] = os.path.join(os.getcwd(), "tmp", "frontend_pyroxene.sock")
     os.environ["BACKEND_SOCKET_PATH"] = os.path.join(os.getcwd(), "tmp", "backend_pyroxene.sock")
-
     os.environ["PID_PATH"] = os.path.join(os.getcwd(), "tmp", "pids.txt")
+    os.environ["LOGGER_FOUNDRY_INSTALL_PATH"] = os.path.join(os.getcwd(), "logger_foundry_lib")
+    os.environ["LOGGER_FOUNDRY_INSTALL_PATH_LIB"] = os.path.join(os.getcwd(), "logger_foundry_lib/lib")
 
-    os.environ["PYROXENE_ROOT_PATH"] = os.path.join(os.getcwd())
-    os.environ["INCLUDED_LIBRARY_PATH"] = os.path.join(os.getcwd(), "logger_foundry_lib")
+def dispatch_frontend():
+    frontend_proc = subprocess.Popen(["python3", "frontend_run.py"], cwd="frontend-haskell", preexec_fn=os.setsid)
+    processes.append(frontend_proc)
 
+def dispatch_middlend():
+    middle_proc = subprocess.Popen(["python3", "middle_end_run.py"], cwd="middle_end_rs", preexec_fn=os.setsid)
+    processes.append(middle_proc)
+    wait_for_socket("tmp/frontend_pyroxene.sock")
 
+def dispatch_backend():
+    backend_proc = subprocess.Popen(["python3", "backend_run.py"], cwd="backend_llvm_cpp", preexec_fn=os.setsid)
+    processes.append(backend_proc)
+    wait_for_socket("tmp/backend_pyroxene.sock")
+
+def parse_cmd_line_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--log", action="store_true")
     parser.add_argument("--log-level", nargs="?", const="ERROR", type=str, default="ERROR")
     cmd_line_arguments = parser.parse_args()
-    
+    return cmd_line_arguments
+
+def check_compile_and_run_logger_foundry(cmd_line_arguments):
     if cmd_line_arguments.log:
         os.environ["PYROXENE_LOG"] = "1"
         os.environ["LOG_FOUNDRY_LIB_PATH"] = build_logger_foundry()
@@ -84,26 +99,33 @@ def init_env():
         os.environ["ERROR_LEVEL"] = get_logger_error_level(cmd_line_arguments.log_level)
 
         open(os.environ["PYROXENE_LOG_PATH"], "w").close()
-        logger_proc = subprocess.Popen(["./build_pyroxene_daemon.sh"], cwd="logger_daemon_pyroxene", preexec_fn=os.setsid)
+        logger_proc = subprocess.Popen(["python3", "build_pyroxene_daemon.py"], cwd="logger_daemon_pyroxene", preexec_fn=os.setsid)
         wait_for_socket("tmp/logger_daemon.sock")
+        return logger_proc
     else:
         os.environ["PYROXENE_LOG"] = "0"
+        return None
 
-    backend_proc = subprocess.Popen(["./backend_run.sh"], cwd="backend_llvm_cpp", preexec_fn=os.setsid)
-    processes.append(backend_proc)
-    wait_for_socket("tmp/backend_pyroxene.sock")
-    middle_proc = subprocess.Popen(["./middle_end_run.sh"], cwd="middle_end_rs", preexec_fn=os.setsid)
-    processes.append(middle_proc)
-    wait_for_socket("tmp/frontend_pyroxene.sock")
-    frontend_proc = subprocess.Popen(["./frontend_hs.sh"], cwd="frontend-haskell", preexec_fn=os.setsid)
-    #threading.Thread(target=reap_process, args=(frontend_proc,), daemon=True).start()
-    processes.append(frontend_proc)
-
+def check_if_logger_proc_exists_and_append_to_procs(logger_proc):
     if os.getenv("PYROXENE_LOG") == "1":
         processes.append(logger_proc)
 
-    with open("tmp/pids.txt", "w") as f:
-        f.write(f"{frontend_proc.pid}:{middle_proc.pid}:{backend_proc.pid}")
+
+def init_env():
+    env_files_setup()
+    init_env_vars()
+
+    cmd_line_arguments = parse_cmd_line_args()
+    logger_proc = check_compile_and_run_logger_foundry(cmd_line_arguments)
+    
+    dispatch_backend()
+    dispatch_middlend()
+    dispatch_frontend()
+
+    write_pids(processes)
+
+    check_if_logger_proc_exists_and_append_to_procs(logger_proc)
+
 
 
 def signal_handler(signal, frame):
