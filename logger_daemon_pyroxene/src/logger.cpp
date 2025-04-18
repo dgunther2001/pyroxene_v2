@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <logger_foundry/logger_foundry/logger_foundry.h>
+#include <logger_foundry/logger_foundry.h>
 #include "pyroxene_logger_parser_strategy.h"
 #include "pyroxene_shutdown_strategy.h"
 #include "test_socket.h"

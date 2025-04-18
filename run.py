@@ -18,7 +18,7 @@ def build_logger_foundry():
     logger_foundry_path = os.path.join(os.getcwd(), "logger_foundry")
     build_logger_foundry_script = os.path.join(logger_foundry_path, "build_logger_foundry.py")
 
-    subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["PYROXENE_ROOT_PATH"]], cwd=logger_foundry_path, check=True)
+    subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["INCLUDED_LIBRARY_PATH"]], cwd=logger_foundry_path, check=True)
 
     # VERIFY THIS LATER
     install_prefix = os.path.join(os.getcwd(), "lib")
@@ -35,8 +35,7 @@ def cleanup_background_processes():
             except:
                 pass
     subprocess.run(["rm", "-rf", "tmp"])
-    subprocess.run(["rm", "-rf", "lib"])
-    subprocess.run(["rm", "-rf", "include"])
+    subprocess.run(["rm", "-rf", "logger_foundry_lib"])
 
 def print_active_processes():
     for process in processes:
@@ -58,7 +57,7 @@ def init_env():
     subprocess.run(["rm", "-rf", "tmp"])
     os.makedirs("logs", exist_ok=True)
     os.makedirs("tmp", exist_ok=True)
-    os.makedirs("lib", exist_ok=True)
+    os.makedirs("logger_foundry_lib", exist_ok=True)
     os.chmod("tmp", 0o755)
 
     os.environ["PYROXENE_LOG_PATH"] = os.path.join(os.getcwd(), "logs", "pyroxene.log")
@@ -70,9 +69,7 @@ def init_env():
     os.environ["PID_PATH"] = os.path.join(os.getcwd(), "tmp", "pids.txt")
 
     os.environ["PYROXENE_ROOT_PATH"] = os.path.join(os.getcwd())
-    os.environ["INCLUDED_LIBRARY_PATH"] = os.path.join(os.getcwd(), "lib")
-
-    os.makedirs("lib", exist_ok=True)
+    os.environ["INCLUDED_LIBRARY_PATH"] = os.path.join(os.getcwd(), "logger_foundry_lib")
 
 
     parser = argparse.ArgumentParser()
