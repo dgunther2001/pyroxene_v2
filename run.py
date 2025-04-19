@@ -26,9 +26,10 @@ def build_logger_foundry(clean_severity):
     install_prefix = os.path.join(os.getcwd(), "lib")
     return install_prefix
 
-def clean_logger_foundry(clean):
+def clean_logger_foundry(clean): 
     if (clean):
         shutil.rmtree("logger_foundry_lib", ignore_errors=True)
+        os.makedirs("logger_foundry_lib", exist_ok=True)
 
 def cleanup_background_processes():
     for process in processes:
@@ -38,7 +39,8 @@ def cleanup_background_processes():
                 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
             except:
                 pass
-    subprocess.run(["rm", "-rf", "tmp"])
+    shutil.rmtree("tmp", ignore_errors=True)
+    #subprocess.run(["rm", "-rf", "tmp"])
     #subprocess.run(["rm", "-rf", "logger_foundry_lib"])
 
 def print_active_processes():
@@ -147,15 +149,17 @@ def check_cmd_line_arg_clean_and_return_severity(clean):
 
 
 def init_env():
+    cmd_line_arguments = parse_cmd_line_args()
+
+    clean_logger_foundry(cmd_line_arguments.clean)
+
     env_files_setup()
     init_env_vars()
 
-    cmd_line_arguments = parse_cmd_line_args()
     logger_proc = check_compile_and_run_logger_foundry(cmd_line_arguments)
         
     clean_arg = check_cmd_line_arg_clean_and_return_severity(cmd_line_arguments.clean)
 
-    clean_logger_foundry(cmd_line_arguments.clean)
     
     dispatch_backend(clean_arg)
     dispatch_middlend(clean_arg)
