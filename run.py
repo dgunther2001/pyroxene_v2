@@ -8,6 +8,17 @@ import shutil
 
 processes = []
 
+def check_dependencies():
+    dependencies = ["cmake", "clang", "make", "stack", "cargo", "python3"]
+    missing_dependencies = []
+    for dep in dependencies:
+        if shutil.which(dep) is None:
+            missing_dependencies.append(dep)
+
+    if len(missing_dependencies) != 0:
+        print(f"Missing dependencies: {' '.join(missing_dependencies)}. Running install.py")
+        subprocess.run(["python3", "install.py"])
+
 def get_logger_error_level(error_level_arg):
     error_level_set = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
     if error_level_arg in error_level_set:
@@ -149,6 +160,8 @@ def check_cmd_line_arg_clean_and_return_severity(clean):
 
 
 def init_env():
+    check_dependencies()
+
     cmd_line_arguments = parse_cmd_line_args()
 
     clean_logger_foundry(cmd_line_arguments.clean)

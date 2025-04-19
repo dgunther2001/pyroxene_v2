@@ -24,7 +24,7 @@ def main():
             shutil.rmtree(".cache", ignore_errors=True)
             subprocess.run(["mkdir", "build"])
 
-        subprocess.run(["cmake", ".."], stdout=devnull, cwd="build", check=True)
+        subprocess.run(["cmake", "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++", ".."], stdout=devnull, cwd="build", check=True)
         subprocess.run(["make"], cwd="build", stdout=devnull, check=True)
         subprocess.run(["./driver"], cwd="build", check=True)
 
