@@ -4,6 +4,7 @@ import sys
 import time
 import signal
 import argparse
+import shutil
 
 processes = []
 
@@ -14,13 +15,20 @@ def get_logger_error_level(error_level_arg):
     else:
         return "ERROR"
 
-def build_logger_foundry():
+def build_logger_foundry(clean_severity):
     logger_foundry_path = os.path.join(os.getcwd(), "logger_foundry")
     build_logger_foundry_script = os.path.join(logger_foundry_path, "build_logger_foundry.py")
-    subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["LOGGER_FOUNDRY_INSTALL_PATH"]], cwd=logger_foundry_path, check=True)
+    if clean_severity[0]:
+        subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["LOGGER_FOUNDRY_INSTALL_PATH"], "--clean", clean_severity[1]], cwd=logger_foundry_path, check=True)
+    else:
+        subprocess.run(["python3", build_logger_foundry_script, "--cmake-prefix", os.environ["LOGGER_FOUNDRY_INSTALL_PATH"]], cwd=logger_foundry_path, check=True)
     # VERIFY THIS LATER
     install_prefix = os.path.join(os.getcwd(), "lib")
     return install_prefix
+
+def clean_logger_foundry(clean):
+    if (clean):
+        shutil.rmtree("logger_foundry_lib", ignore_errors=True)
 
 def cleanup_background_processes():
     for process in processes:
@@ -70,45 +78,72 @@ def init_env_vars():
     os.environ["LOGGER_FOUNDRY_INSTALL_PATH"] = os.path.join(os.getcwd(), "logger_foundry_lib")
     os.environ["LOGGER_FOUNDRY_INSTALL_PATH_LIB"] = os.path.join(os.getcwd(), "logger_foundry_lib/lib")
 
-def dispatch_frontend():
-    frontend_proc = subprocess.Popen(["python3", "frontend_run.py"], cwd="frontend-haskell", preexec_fn=os.setsid)
+def dispatch_frontend(clean):
+    if(clean[0]):
+        frontend_proc = subprocess.Popen(["python3", "frontend_run.py", "--clean"], cwd="frontend-haskell", preexec_fn=os.setsid)
+    else:
+        frontend_proc = subprocess.Popen(["python3", "frontend_run.py"], cwd="frontend-haskell", preexec_fn=os.setsid)
+
     processes.append(frontend_proc)
 
-def dispatch_middlend():
-    middle_proc = subprocess.Popen(["python3", "middle_end_run.py"], cwd="middle_end_rs", preexec_fn=os.setsid)
+def dispatch_middlend(clean):
+    if(clean[0]):
+         middle_proc = subprocess.Popen(["python3", "middle_end_run.py", "--clean"], cwd="middle_end_rs", preexec_fn=os.setsid)
+    else:
+        middle_proc = subprocess.Popen(["python3", "middle_end_run.py"], cwd="middle_end_rs", preexec_fn=os.setsid)
+    
     processes.append(middle_proc)
     wait_for_socket("tmp/frontend_pyroxene.sock")
 
-def dispatch_backend():
-    backend_proc = subprocess.Popen(["python3", "backend_run.py"], cwd="backend_llvm_cpp", preexec_fn=os.setsid)
+def dispatch_backend(clean):
+    if (clean[0]):
+        backend_proc = subprocess.Popen(["python3", "backend_run.py", "--clean", clean[1]], cwd="backend_llvm_cpp", preexec_fn=os.setsid)
+    else:
+        backend_proc = subprocess.Popen(["python3", "backend_run.py"], cwd="backend_llvm_cpp", preexec_fn=os.setsid)
+
     processes.append(backend_proc)
     wait_for_socket("tmp/backend_pyroxene.sock")
 
-def parse_cmd_line_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--log", action="store_true")
-    parser.add_argument("--log-level", nargs="?", const="ERROR", type=str, default="ERROR")
-    cmd_line_arguments = parser.parse_args()
-    return cmd_line_arguments
-
 def check_compile_and_run_logger_foundry(cmd_line_arguments):
     if cmd_line_arguments.log:
+        clean_severity = check_cmd_line_arg_clean_and_return_severity(cmd_line_arguments.clean)
+
         os.environ["PYROXENE_LOG"] = "1"
-        os.environ["LOG_FOUNDRY_LIB_PATH"] = build_logger_foundry()
+        os.environ["LOG_FOUNDRY_LIB_PATH"] = build_logger_foundry(clean_severity)
 
         os.environ["ERROR_LEVEL"] = get_logger_error_level(cmd_line_arguments.log_level)
 
         open(os.environ["PYROXENE_LOG_PATH"], "w").close()
-        logger_proc = subprocess.Popen(["python3", "build_pyroxene_daemon.py"], cwd="logger_daemon_pyroxene", preexec_fn=os.setsid)
+        
+
+        if (clean_severity[0]):
+            logger_proc = subprocess.Popen(["python3", "build_pyroxene_daemon.py", "--clean", clean_severity[1]], cwd="logger_daemon_pyroxene", preexec_fn=os.setsid)
+        else:
+            logger_proc = subprocess.Popen(["python3", "build_pyroxene_daemon.py"], cwd="logger_daemon_pyroxene", preexec_fn=os.setsid)
         wait_for_socket("tmp/logger_daemon.sock")
         return logger_proc
     else:
         os.environ["PYROXENE_LOG"] = "0"
         return None
 
+def parse_cmd_line_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log", action="store_true")
+    parser.add_argument("--log-level", nargs="?", const="ERROR", type=str)
+    parser.add_argument("--clean", nargs="?", const="soft", type=str, choices=["soft", "hard"])
+    cmd_line_arguments = parser.parse_args()
+    return cmd_line_arguments
+
 def check_if_logger_proc_exists_and_append_to_procs(logger_proc):
     if os.getenv("PYROXENE_LOG") == "1":
         processes.append(logger_proc)
+
+def check_cmd_line_arg_clean_and_return_severity(clean):
+    if (clean):
+        return (True, clean)
+    return (False, None)
+
+
 
 
 def init_env():
@@ -117,10 +152,14 @@ def init_env():
 
     cmd_line_arguments = parse_cmd_line_args()
     logger_proc = check_compile_and_run_logger_foundry(cmd_line_arguments)
+        
+    clean_arg = check_cmd_line_arg_clean_and_return_severity(cmd_line_arguments.clean)
+
+    clean_logger_foundry(cmd_line_arguments.clean)
     
-    dispatch_backend()
-    dispatch_middlend()
-    dispatch_frontend()
+    dispatch_backend(clean_arg)
+    dispatch_middlend(clean_arg)
+    dispatch_frontend(clean_arg)
 
     write_pids(processes)
 
