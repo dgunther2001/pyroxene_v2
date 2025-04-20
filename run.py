@@ -10,15 +10,8 @@ import threading
 processes = []
 
 def check_dependencies():
-    dependencies = ["cmake", "clang", "make", "stack", "cargo", "python3"]
-    missing_dependencies = []
-    for dep in dependencies:
-        if shutil.which(dep) is None:
-            missing_dependencies.append(dep)
-
-    if len(missing_dependencies) != 0:
-        print(f"Missing dependencies: {' '.join(missing_dependencies)}. Running install.py")
-        subprocess.run(["python3", "install.py"])
+    print(f"[*] Ensuring dependency installation for Pyroxene v2...")
+    subprocess.run(["python3", "install.py"])
 
 def get_logger_error_level(error_level_arg):
     error_level_set = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
@@ -76,7 +69,7 @@ def write_pids(process_list):
         f.write(process_string)
 
 def env_files_setup():
-    subprocess.run(["rm", "-rf", "logs"])
+    #subprocess.run(["rm", "-rf", "logs"])
     subprocess.run(["rm", "-rf", "tmp"])
     os.makedirs("logs", exist_ok=True)
     os.makedirs("tmp", exist_ok=True)
@@ -127,7 +120,7 @@ def check_compile_and_run_logger_foundry(cmd_line_arguments):
 
         os.environ["ERROR_LEVEL"] = get_logger_error_level(cmd_line_arguments.log_level)
 
-        open(os.environ["PYROXENE_LOG_PATH"], "w").close()
+        #open(os.environ["PYROXENE_LOG_PATH"], "w").close()
         
 
         if (clean_severity[0]):
