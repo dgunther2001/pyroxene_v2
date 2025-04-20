@@ -8,12 +8,12 @@ def dependency_exists(dependency):
 
 def install_linux(dependencies):
     print("[+] Updating apt...")
-    subprocess.run(["sudo", "apt-get", "update"], check=True)
-    print(f"Installing: {' '.join(dependencies)}")
-    subprocess.run(["sudo", "apt-get", "install", "-y"] + dependencies, check=True)
+    subprocess.run(["apt-get", "update"], check=True)
+    print(f"[+] Installing: {' '.join(dependencies)}")
+    subprocess.run(["apt-get", "install", "-y"] + dependencies, check=True)
 
 def get_linux_dep_names():
-    return ["build-essential", "cmake", "python3", "clang", "rustc", "cargo", "haskell-stack"]
+    return ["build-essential", "cmake", "python3", "clang", "rustc", "cargo", "haskell-stack", "curl", "tar", "llvm"]
 
 def install_mac_os(dependencies, missing_dependencies):
     # add check for homebrew here!!!
@@ -43,7 +43,7 @@ def main():
     
     os_type = platform.system()
 
-    print(f"[+] Missing dependencies: {', '.join(missing_dependencies)}")
+    #print(f"[+] Missing dependencies: {', '.join(missing_dependencies)}")
     print(f"[+] Detected OS: {os_type}")
 
     if os_type == "Linux":

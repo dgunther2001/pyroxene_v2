@@ -16,9 +16,11 @@ def main():
 
         if cmd_args.clean:
             subprocess.run(["stack", "clean"], stdout=devnull, check=True)
+            #subprocess.run(["stack", "setup"],  check=True)
+            #stdout=devnull, stderr=devnull,
         
-
-        subprocess.run(["stack", "build", "--verbosity", "warn"], stdout=devnull, check=True)
+        # , "--verbosity", "warn"
+        subprocess.run(["stack", "build", "--verbosity", "error"], stdout=devnull, check=True)
         subprocess.run(["stack", "exec", "frontend-haskell"],  check=True)
 
 main()

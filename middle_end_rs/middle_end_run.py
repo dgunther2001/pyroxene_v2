@@ -1,6 +1,7 @@
 import os
 import subprocess
 import argparse
+import shutil
 
 def parse_cmd_line_args():
     parser = argparse.ArgumentParser()
@@ -16,6 +17,11 @@ def main():
         cmd_args = parse_cmd_line_args()
 
         if cmd_args.clean:
+            lockfile = "Cargo.lock"
+            if os.path.isfile(lockfile):
+                os.remove(lockfile)
+                
+            subprocess.run(["cargo", "update"], stdout=devnull, check=True)
             subprocess.run(["cargo", "clean", "--quiet"], stdout=devnull, check=True)
 
         subprocess.run(["cargo", "build", "--quiet"], stdout=devnull, check=True)

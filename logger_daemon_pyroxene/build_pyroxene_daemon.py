@@ -26,8 +26,11 @@ def main():
             shutil.rmtree(".cache", ignore_errors=True)
             subprocess.run(["mkdir", "build"])
 
+        os.environ["LD_LIBRARY_PATH"] = cmake_prefix_path
+
+        env = os.environ.copy()
         subprocess.run(["cmake", "..", f"-DCMAKE_INSTALL_PREFIX={cmake_prefix_path}"], stdout=devnull, cwd="build", check=True)
         subprocess.run(["make"], cwd="build", stdout=devnull, check=True)
-        subprocess.run(["./driver"], cwd="build", check=True)
+        subprocess.run(["./driver"], cwd="build", check=True, env=env)
 
 main()

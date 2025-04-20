@@ -1,0 +1,62 @@
+name: Build and Test Basic Run
+
+on:
+  #workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  Linux-Build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+            ~/.stack
+            ~/.cargo
+            ~/.cache
+            logger_foundry/build
+            backend_llvm_cpp/build
+        key: ${{ runner.os }}-pyroxene-${{ hashFiles('**/stack.yaml', '**/Cargo.lock', '**/CMakeLists.txt') }}
+        restore-keys: |
+            ${{ runner.os }}-pyroxene-
+
+    - name: Run and Test 
+      run: python3 run.py --log --log-level DEBUG --ci 200
+
+  Mac-Build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+            ~/.stack
+            ~/.cargo
+            ~/.cache
+            logger_foundry/build
+            backend_llvm_cpp/build
+        key: ${{ runner.os }}-pyroxene-${{ hashFiles('**/stack.yaml', '**/Cargo.lock', '**/CMakeLists.txt') }}
+        restore-keys: |
+            ${{ runner.os }}-pyroxene-
+
+    - name: Ensure Homebrew is usable
+      run: |
+        echo "Checking Homebrew Installation"
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+        brew update
+
+    - name: Run and Test 
+      run: python3 run.py --log --log-level DEBUG --ci 200
+

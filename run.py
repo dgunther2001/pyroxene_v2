@@ -5,6 +5,7 @@ import time
 import signal
 import argparse
 import shutil
+import threading
 
 processes = []
 
@@ -61,7 +62,7 @@ def print_active_processes():
         else:
             print(f"Process {process.pid} exited with code {process.poll()}")
 
-def wait_for_socket(socket_path, timeout=5):
+def wait_for_socket(socket_path, timeout=30):
     #print(f"Waiting on socket: {socket_path}")
     start = time.time()
     while not os.path.exists(socket_path):
@@ -144,6 +145,7 @@ def parse_cmd_line_args():
     parser.add_argument("--log", action="store_true")
     parser.add_argument("--log-level", nargs="?", const="ERROR", type=str)
     parser.add_argument("--clean", nargs="?", const="soft", type=str, choices=["soft", "hard"])
+    parser.add_argument("--ci", nargs="?", const=30, type=int)
     cmd_line_arguments = parser.parse_args()
     return cmd_line_arguments
 
@@ -157,6 +159,19 @@ def check_cmd_line_arg_clean_and_return_severity(clean):
     return (False, None)
 
 
+def run_ci_timeout_thread(processes, timeout):
+    def monitor():
+        start_time = time.time();   
+        while time.time() - start_time < timeout:
+            all_finished = all(p.poll() is not None for p in processes)
+            if all_finished:
+                return
+            time.sleep(1)
+
+        print(f"[!] CI Process Timeout Reached. Terminating All Processes.")
+        cleanup_background_processes()
+    
+    threading.Thread(target=monitor, daemon=True).start()
 
 
 def init_env():
@@ -181,6 +196,11 @@ def init_env():
     write_pids(processes)
 
     check_if_logger_proc_exists_and_append_to_procs(logger_proc)
+    
+    
+    if (cmd_line_arguments.ci):
+        run_ci_timeout_thread(processes, cmd_line_arguments.ci)
+    
 
 
 
