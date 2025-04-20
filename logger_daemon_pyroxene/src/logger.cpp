@@ -23,7 +23,7 @@ int main() {
     
     logger_foundry::logger_daemon orchestrator = logger_foundry::logger_daemon_builder()
         .set_log_path(std::getenv("PYROXENE_LOG_PATH"))
-        .set_socket_path(std::getenv("PYROXENE_LOG_SOCKET_PATH"))
+        .add_unix_socket(std::getenv("PYROXENE_LOG_SOCKET_PATH"), 20)
         .set_parser_strategy(&pyroxene_default_parser::pyroxene_default_parser)
         .set_kill_strategy([] {
             pyroxene_shutdown_strategy::monitor_feeding_processes();
