@@ -1,5 +1,5 @@
 Daniel Gunther -- 2025  
-Logger Foundry
+Pyroxene Programming Language 2.0
 
 # PolyForm Noncommercial License 1.0.0
 
