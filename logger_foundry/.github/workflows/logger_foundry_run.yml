@@ -15,7 +15,7 @@ jobs:
           uses: actions/checkout@v4
 
         - name: Build and run Logger Foundry
-          working-directory: logger_foundry
+          #working-directory: logger_foundry
           run: python3 run_ci.py --ci 120
 
     Mac-Build:
@@ -25,5 +25,5 @@ jobs:
           uses: actions/checkout@v4
 
         - name: Build and run Logger Foundry
-          working-directory: logger_foundry
+          #working-directory: logger_foundry
           run: python3 run_ci.py --ci 45

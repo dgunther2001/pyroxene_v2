@@ -6,3 +6,4 @@ lib/
 /include/
 logger_foundry_lib/
 test_installer/
+.DS_Store
