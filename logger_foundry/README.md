@@ -132,6 +132,6 @@ target_include_directories(my_library PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 **Building Your Project:**  
 After integrating with CMake, MAKE SURE that your `LD_LIBRARY_PATH` is set to where Logger Foundry was built (same as `--cmake-prefix`) before building your project.  
 
-**That's it. It's that easy.**  
+### That's it. It's that easy.
 
 **NOTE:** as per the [License](LICENSE.md), Logger Foundry is released under the PolyForm Noncommercial License 1.0.0. If you wish to use Logger Foundry in a commercial product, you must contact me to arrange a separate agreement.
